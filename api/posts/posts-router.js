@@ -62,52 +62,99 @@ router.post('/', (req, res) => {
 router.put('/:id', (req, res) => {
     // console.log("PUT connected")
 
-    if (!req.params.id) {
-        res.status(404).json({
-            message: "The post with the specified ID does not exist"
-        })
-    } else if (!req.body.title || !req.body.contents) {
+    const { title, contents } = req.body
+    if (!title || !contents) {
         res.status(400).json({
             message: "Please provide title and contents for the post"
         })
     } else {
-        // const { title, contents } = req.body
-        const changes = req.body
-        Posts.update(req.params.id, changes)
-        .then(posts => {
-            res.status(200).json(posts)
-        })
-        .catch(err => {
-            console.log(err)
-            res.status(500).json({
-                message: "The post information could not be modified"
-            })
-        })
-    }
-})
-
-router.delete('/:id', (req, res) => {
-    // console.log("DELETE connected")
-    Posts.remove(req.params.id)
-        .then(posts => {
-            if (!req.params.id) {
+        Posts.findById(req.params.id)
+        .then(post => {
+            if (!post) {
                 res.status(404).json({
                     message: "The post with the specified ID does not exist"
                 })
             } else {
-                res.status(200).json(posts)
+                return Posts.update(req.params.id, req.body)
+            }
+        })
+        .then(data => {
+            if (data) {
+                return Posts.findById(req.params.id)
+            }
+        })
+        .then(post => {
+            if (post) {
+                res.json(post)
             }
         })
         .catch(err => {
-            console.log(err)
-            res.status(500).json({
-                message: "The post could not be removed"
-            })
-        })
+                    console.log(err)
+                    res.status(500).json({
+                        message: "The post information could not be modified"
+                    })
+                })
+    }
+    // if (!req.params.id) {
+    //     res.status(404).json({
+    //         message: "The post with the specified ID does not exist"
+    //     })
+    // } else if (!req.body.title || !req.body.contents) {
+    //     res.status(400).json({
+    //         message: "Please provide title and contents for the post"
+    //     })
+    // } else {
+    //     // const { title, contents } = req.body
+    //     const changes = req.body
+    //     Posts.update(req.params.id, changes)
+    //     .then(posts => {
+    //         res.status(200).json(posts)
+    //     })
+    //     .catch(err => {
+    //         console.log(err)
+    //         res.status(500).json({
+    //             message: "The post information could not be modified"
+    //         })
+    //     })
+    // }
 })
 
-router.get('/:id/comments', (req, res) => {
-    console.log("GET with comments connected")
+router.delete('/:id', async (req, res) => {
+    try {
+        const post = await Posts.findById(req.params.id)
+        if (!post) {
+            res.status(404).json({
+                message: "The post with the specified ID does not exist"
+            })
+        } else {
+            await Posts.remove(req.params.id)
+            res.json(post)
+        } 
+    }   catch (err) {
+            res.status(500).json({
+                message: "The post could not be removed",
+                err: err.message
+        })
+    }
+})
+
+router.get('/:id/comments', async (req, res) => {
+    try {
+        const post = await Posts.findById(req.params.id)
+        if (!post) {
+            res.status(404).json({
+                message: "The post with the specified ID does not exist"
+            })
+        } else {
+            const messages = await Posts.findPostComments(req.params.id)
+            res.json(messages)
+        }
+    } catch (err) {
+        res.status(500).json({
+            message: "The comments information could not be retrieved",
+            err: err.message
+        })
+    }
 })
 
 
