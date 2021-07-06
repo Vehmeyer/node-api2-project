@@ -5,7 +5,6 @@ const Posts = require('./posts-model')
 const router = express.Router()
 
 router.get('/', (req, res) => {
-    // console.log("GET request connected")
     Posts.find(req.query)
         .then(posts => {
             res.status(200).json(posts)
@@ -19,7 +18,6 @@ router.get('/', (req, res) => {
 })
 
 router.get('/:id', (req, res) => {
-    // console.log("GET by ID connected")
     Posts.findById(req.params.id)
         .then(posts => {
             if (posts) {
@@ -39,23 +37,25 @@ router.get('/:id', (req, res) => {
 })
 
 router.post('/', (req, res) => {
-    // console.log("POST connected")
-    if (!req.body.title || !req.body.contents) {
+    const { title, contents } = req.body
+    if (!title || !contents) {
         res.status(400).json({
             message: "Please provide title and contents for the post"
         })
     } else {
-        const { title, contents } = req.body
         Posts.insert({ title, contents })
-            .then(posts => {
+        .then(({ id }) => {
+            return Posts.findById(id)
+        })    
+        .then(posts => {
                 res.status(201).json(posts)
-            })
-            .catch(err => {
-                console.log(err)
-                res.status(500).json({
-                    message: "There was an error while saving the post to the database"
-            })
         })
+        .catch(err => {
+            console.log(err)
+            res.status(500).json({
+                message: "There was an error while saving the post to the database"
+        })
+    })
     }
 })
 
@@ -88,8 +88,27 @@ router.put('/:id', (req, res) => {
 
 router.delete('/:id', (req, res) => {
     // console.log("DELETE connected")
+    Posts.remove(req.params.id)
+        .then(posts => {
+            if (!req.params.id) {
+                res.status(404).json({
+                    message: "The post with the specified ID does not exist"
+                })
+            } else {
+                res.status(200).json(posts)
+            }
+        })
+        .catch(err => {
+            console.log(err)
+            res.status(500).json({
+                message: "The post could not be removed"
+            })
+        })
 })
 
+router.get('/:id/comments', (req, res) => {
+    console.log("GET with comments connected")
+})
 
 
 module.exports = router
